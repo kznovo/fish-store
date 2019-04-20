@@ -120,14 +120,15 @@ def main() -> None:
             if "2. 商品を仕入れる" not in todays_actions:
                 continue
 
-            fish_on_sale = [generate_fish(day) for _ in range(3)]
+            # 3~6尾魚を出す
+            fish_on_sale = [generate_fish(day) for _ in range(random.randint(3, 6))]
             for i, f in enumerate(fish_on_sale, 1):
                 print(i, f)
-            print(4, "何も買わない")
+            print(i + 1, "何も買わない")
 
             buy_ix = numeric_input(f"どの商品を買いますか？{nl}>") - 1
 
-            if buy_ix < 0 or buy_ix >= 3:
+            if buy_ix < 0 or buy_ix >= i:
                 continue
 
             buy_amount = numeric_input(f"何尾買いますか？{nl}>")
@@ -146,9 +147,7 @@ def main() -> None:
                 # 販売成功確率を計算
                 prob = item.purchace_price / selling_price * random.uniform(0.8, 1.2)
                 # 販売尾数を算出
-                solds = sum(
-                    random.choices([1, 0], [prob, 1 - prob])[0] for _ in range(amount)
-                )
+                solds = sum(random.choices([1, 0], [prob, 1 - prob], k=amount))
 
                 print(f"{solds}尾販売")
                 s.sell(item, solds, selling_price)
