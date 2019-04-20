@@ -74,7 +74,7 @@ def main() -> None:
     nl = "\n"
 
     while True:
-        option_str = f"{nl}{day}{nl}残高：¥{s.balance} {'+' if s.balance >= initial_balance else ''}{round(s.balance / initial_balance - 1, 3)}%{nl}=====何をしますか？====={nl}{nl.join(todays_actions)}{nl}>"
+        option_str = f"{nl}{day}{nl}残高：¥{s.balance} {'+' if s.balance >= initial_balance else ''}{round((s.balance / initial_balance - 1) * 100, 3)}%{nl}=====何をしますか？====={nl}{nl.join(todays_actions)}{nl}>"
         try:
             action = int(input(option_str))
         except:
@@ -140,7 +140,7 @@ def main() -> None:
             sell_item = market[sell_ix]
 
             try:
-                sell_amount = max(int(input(f"何尾売りますか？{nl}>")), sell_item["amount"])
+                sell_amount = min(int(input(f"何尾売りますか？{nl}>")), sell_item["amount"])
             except:
                 print("数字を入力してください")
                 continue
