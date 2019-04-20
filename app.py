@@ -23,20 +23,6 @@ class Item:
 Inventory = Dict[Item, int]
 
 
-class ItemDB:
-    def __init__(self, initial_catalogue: List[Item] = []) -> None:
-        self.catalogue = initial_catalogue
-
-    def add_item(self, item: Item) -> None:
-        self.catalogue.append(item)
-
-    def delete_item(self, item_id: int) -> None:
-        if item_id > len(self.catalogue):
-            print("エラー")
-        else:
-            del self.catalogue[item_id]
-
-
 class Store:
     def __init__(
         self,
