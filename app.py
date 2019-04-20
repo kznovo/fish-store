@@ -1,14 +1,18 @@
 """魚屋ゲーム"""
 
 import random
-import sys
 import copy
 import datetime
-from typing import Dict, Union, List, Optional, Any
+from typing import Dict, Union, List, Optional, Any, Optional
 from data import fish, harbors
 
 
 class Item:
+    """商品クラス
+    名前、仕入れ値、賞味期限、売値を管理する。
+    売値は後から変えられるようにしている。
+    """
+
     def __init__(
         self, name: str, purchace_price: int, expires_at: datetime.date
     ) -> None:
@@ -20,47 +24,68 @@ class Item:
         return f"{self.name} - ¥{self.purchace_price} - 売り期限：{self.expires_at}"
 
 
+# 店舗で管理する在庫の型を指定する。
+# Itemクラスインスタンスをキー、整数（在庫数量）をバリューとする辞書
 Inventory = Dict[Item, int]
 
 
 class Store:
-    def __init__(
-        self,
-        initial_balance: int = random.randint(500, 5000),
-        initial_inventory: Inventory = {},
-    ):
-        self.balance = initial_balance
-        self.inventory = initial_inventory
+    """店舗クラス
+    残高および在庫状況を管理する。
+    """
+
+    def __init__(self):
+        # 残高と在庫を初期化する
+        self.balance = 10000  # type: int
+        self.inventory = {}  # type: Inventory
 
     def buy(self, item: Item, amount: int) -> None:
+        """仕入れ
+        1. 商品を在庫に追加する
+        2. 残高から商品代を引く
+        """
         self.inventory.update({item: amount})
         self.balance -= item.purchace_price * amount
 
-    def sell(self, item: Item, amount: int, sell_price: int) -> None:
+    def sell(self, item: Item, amount: int, selling_price: int) -> None:
+        """販売
+        1. 商品を在庫から指定数量分引く。
+        2. 販売金額×販売数量分残高に追加する。
+        """
         self.inventory[item] -= amount
-        self.balance += sell_price * amount
-        if self.inventory[item] == 0:
-            del self.inventory[item]
+        self.balance += selling_price * amount
 
     def clean_inventory(self, date: datetime.date) -> None:
-        _inventory = {}  # type: Inventory
-        for item, amount in self.inventory.items():
-            if item.expires_at < date:
-                print(f"[処分] {item} {amount}尾")
-            else:
-                _inventory.update({item: amount})
-        self.inventory = _inventory
+        """在庫整理
+        賞味期限切れ商品を在庫から削除する。
+        数が0の商品を在庫から消す。
+        """
+        self.inventory = {
+            item: amount
+            for item, amount in self.inventory.items()
+            if item.expires_at > date and amount != 0
+        }
 
 
 def generate_fish(date: datetime.date) -> Item:
+    """水揚げ商品情報生成
+    仕入れ値、商品名、賞味期限をランダムに作成する。
+    """
     price = random.randint(100, 5000)
-    caught_at = random.choice(harbors)
-    name = random.choice(fish)
+    name = f"{random.choice(harbors)}産 {random.choice(fish)}"
     expires_at = date + datetime.timedelta(days=random.randint(1, 3))
-    return Item(f"{caught_at}産 {name}", price, expires_at)
+    return Item(name, price, expires_at)
 
 
 def main() -> None:
+    """
+    1. 初期残高は10,000円に設定される。
+    2. 毎日500円の販管費が引かれる。
+    3. 商品は1日に何回でも仕入れられる。でも一度販売を実行したら
+        翌日以降しか仕入れはできない。
+    4. 残高がマイナスになったらゲームオーバー。
+    5. 資産が10倍になったら勝ち。
+    """
     s = Store()
     initial_balance = s.balance
     day = datetime.date.today()
@@ -69,6 +94,7 @@ def main() -> None:
         "2. 商品を仕入れる",
         "3. 商品を売る",
         "4. 翌日にいく（販管費¥500円が差し引かれます）",
+        "5. ゲーム終了"
     ]
     todays_actions = copy.deepcopy(available_actions)
     nl = "\n"
@@ -81,9 +107,11 @@ def main() -> None:
             print("数字を入力してください")
             continue
 
+        # 在庫をみる
         if action == 1:
             print(s.inventory)
 
+        # 商品を仕入れる
         elif action == 2:
             if "2. 商品を仕入れる" not in todays_actions:
                 continue
@@ -101,62 +129,54 @@ def main() -> None:
 
             if buy_ix < 0 or buy_ix >= 3:
                 continue
-            buy_amount = int(input(f"何尾買いますか？{nl}>"))
-            if not isinstance(buy_amount, int):
-                continue
-            s.buy(fish_on_sale[buy_ix], buy_amount)
-            print()
-            print(f"在庫：{s.inventory}")
-            print(f"残金：¥{s.balance}")
-            todays_actions.remove("2. 商品を仕入れる")
 
+            try:
+                buy_amount = int(input(f"何尾買いますか？{nl}>"))
+            except:
+                print("数字を入力してください")
+                continue
+
+            s.buy(fish_on_sale[buy_ix], buy_amount)
+
+        # 商品を売る
         elif action == 3:
             if "3. 商品を売る" not in todays_actions:
                 continue
-            market = [
-                {
-                    "item": item,
-                    "selling_price": int(
-                        item.purchace_price * random.uniform(0.9, 1.3)
-                    ),
-                    "amount": amount,
-                }
-                for item, amount in s.inventory.items()
-            ]
-            for i, deal in enumerate(market, 1):
-                print(
-                    f"{i} {deal['item']} - 売値：{deal['selling_price']}円 - 残{deal['amount']}尾"
+
+            # 今日の売値を決める
+            for item, amount in s.inventory.items():
+                try:
+                    selling_price = int(input(f"{item} の売値{nl}>"))
+                except:
+                    # エラー入力の時は暫定で25%値入れ
+                    selling_price = int(item.purchace_price * 1.25)
+                # 販売成功確率
+                prob = item.purchace_price / selling_price * random.uniform(0.8, 1.2)
+                # 販売尾数
+                solds = sum(
+                    random.choices([1, 0], [prob, 1 - prob])[0] for _ in range(amount)
                 )
 
-            try:
-                sell_ix = int(input("どの商品を売りますか？")) - 1
-            except:
-                print("数字を入力してください")
-                continue
+                print(f"{solds}尾販売")
+                s.sell(item, solds, selling_price)
 
-            if sell_ix < 0 or sell_ix > len(market) - 1:
-                todays_actions.remove("3. 商品を売る")
-                continue
-            sell_item = market[sell_ix]
-
-            try:
-                sell_amount = min(int(input(f"何尾売りますか？{nl}>")), sell_item["amount"])
-            except:
-                print("数字を入力してください")
-                continue
-
-            s.sell(sell_item["item"], sell_amount, sell_item["selling_price"])
+            todays_actions.remove("2. 商品を仕入れる")
             todays_actions.remove("3. 商品を売る")
 
         elif action == 4:
             day += datetime.timedelta(days=1)
-            s.clean_inventory(day)
             s.balance -= 500
             todays_actions = copy.deepcopy(available_actions)
 
+        elif action == 5:
+            print("Bye")
+            break
+
         if s.balance < 0:
             print(f"GAME OVER: 借金¥{s.balance}")
-            sys.exit(1)
+            break
+
+        s.clean_inventory(day)
 
 
 if __name__ == "__main__":
