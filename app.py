@@ -76,6 +76,15 @@ def generate_fish(date: datetime.date) -> Item:
     return Item(name, price, expires_at)
 
 
+def numeric_input(prompt: str) -> int:
+    while True:
+        _x = input(prompt)
+        if _x.isnumeric():
+            return int(_x)
+        else:
+            print("数字を入力してください\n")
+
+
 def main() -> None:
     """
     1. 初期残高は10,000円に設定される。
@@ -100,11 +109,7 @@ def main() -> None:
 
     while True:
         option_str = f"{nl}{day}{nl}残高：¥{s.balance} {'+' if s.balance >= initial_balance else ''}{round((s.balance / initial_balance - 1) * 100, 3)}%{nl}=====何をしますか？====={nl}{nl.join(todays_actions)}{nl}>"
-        try:
-            action = int(input(option_str))
-        except:
-            print("数字を入力してください")
-            continue
+        action = numeric_input(option_str)
 
         # 在庫をみる
         if action == 1:
@@ -120,20 +125,12 @@ def main() -> None:
                 print(i, f)
             print(4, "何も買わない")
 
-            try:
-                buy_ix = int(input(f"どの商品を買いますか？{nl}>")) - 1
-            except:
-                print("数字を入力してください")
-                continue
+            buy_ix = numeric_input(f"どの商品を買いますか？{nl}>") - 1
 
             if buy_ix < 0 or buy_ix >= 3:
                 continue
 
-            try:
-                buy_amount = int(input(f"何尾買いますか？{nl}>"))
-            except:
-                print("数字を入力してください")
-                continue
+            buy_amount = numeric_input(f"何尾買いますか？{nl}>")
 
             s.buy(fish_on_sale[buy_ix], buy_amount)
 
@@ -144,14 +141,11 @@ def main() -> None:
 
             # 今日の売値を決める
             for item, amount in s.inventory.items():
-                try:
-                    selling_price = int(input(f"{item} の売値{nl}>"))
-                except:
-                    # エラー入力の時は暫定で25%値入れ
-                    selling_price = int(item.purchace_price * 1.25)
-                # 販売成功確率
+                # 売値入力
+                selling_price = numeric_input(f"{item} の売値{nl}>")
+                # 販売成功確率を計算
                 prob = item.purchace_price / selling_price * random.uniform(0.8, 1.2)
-                # 販売尾数
+                # 販売尾数を算出
                 solds = sum(
                     random.choices([1, 0], [prob, 1 - prob])[0] for _ in range(amount)
                 )
