@@ -113,7 +113,7 @@ def main() -> None:
                 print("数字を入力してください")
                 continue
 
-            if buy_ix == 3 or buy_ix < 0 or buy_ix > 3:
+            if buy_ix < 0 or buy_ix >= 3:
                 continue
             buy_amount = int(input(f"何尾買いますか？{nl}>"))
             if not isinstance(buy_amount, int):
@@ -149,16 +149,17 @@ def main() -> None:
                 continue
 
             if sell_ix < 0 or sell_ix > len(market) - 1:
+                todays_actions.remove("3. 商品を売る")
                 continue
-            item = market[sell_ix]
+            sell_item = market[sell_ix]
 
             try:
-                sell_amount = max(int(input(f"何尾売りますか？{nl}>")), item["amount"])
+                sell_amount = max(int(input(f"何尾売りますか？{nl}>")), sell_item["amount"])
             except:
                 print("数字を入力してください")
                 continue
 
-            s.sell(item["item"], sell_amount, item["selling_price"])
+            s.sell(sell_item["item"], sell_amount, sell_item["selling_price"])
             todays_actions.remove("3. 商品を売る")
 
         elif action == 4:
