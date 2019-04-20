@@ -10,7 +10,6 @@ from data import fish, harbors
 class Item:
     """商品クラス
     名前、仕入れ値、賞味期限、売値を管理する。
-    売値は後から変えられるようにしている。
     """
 
     def __init__(
