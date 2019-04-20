@@ -94,7 +94,7 @@ def main() -> None:
         "2. 商品を仕入れる",
         "3. 商品を売る",
         "4. 翌日にいく（販管費¥500円が差し引かれます）",
-        "5. ゲーム終了"
+        "5. ゲーム終了",
     ]
     todays_actions = copy.deepcopy(available_actions)
     nl = "\n"
@@ -174,6 +174,9 @@ def main() -> None:
 
         if s.balance < 0:
             print(f"GAME OVER: 借金¥{s.balance}")
+            break
+        elif s.balance > initial_balance * 10:
+            print(f"CONGRATULATIONS! 資産10倍おめでとうございます!")
             break
 
         s.clean_inventory(day)
